@@ -1,0 +1,11 @@
+{
+  "name": "@bsv-universal/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@bsv-universal/protocol-types": "workspace:*",
+    "@bsv-universal/crypto": "workspace:*"
+  }
+}

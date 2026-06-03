@@ -1,0 +1,86 @@
+PROJECT BRIEF FOR DESIGN ARCHITECT
+Title: BSV Universal Game & Smart Contract SDK (codename: bsv-universal-sdk)
+Goal: Build a single, production-grade, monorepo SDK that makes ANY game (poker + all variants + future games) AND ANY smart contract ever designed or thought of (including all current registries: land/title, IP/evidence, verifiable accounting, NFTs, identity, supply-chain, AI provenance, tokenized commerce, etc.) first-class, dealerless, non-custodial, and fully on-chain enforceable on BSV.  This SDK must be the general-purpose state-machine engine for BSV — poker was the proof-of-concept; this is the universal platform.Vision (one sentence)
+A pluggable, deterministic, traceable, real-interpreter-backed SDK where any developer can drop in a new ContractModule (game, registry, or arbitrary smart contract) and instantly get: multi-party coordination, bonded channels, fair-play proofs, on-chain SQL ledger, verifiable accounting, deterministic replay/audit, web + desktop clients, relay/indexer networking, and full traceability — all with zero trusted third parties and zero OP_RETURN.1. Non-Negotiable Production Requirements (same as bsv-poker)Full traceability matrix: every REQ- maps to code + tests + spec section (≥ 300 requirements expected).
+spec/bsv-universal-sdk-spec.md + BUILD-STATUS.md + traceability.txt (exactly like poker).
+pnpm monorepo with strict TypeScript, Go services, Docker vm/ stack, pnpm reproduce, pnpm trace, pnpm ci.
+Real BSV node binding (D6), real bonded-subsat-channel, real cardtable/mental-poker crypto, real triple-entry-bsv-sql, real verifiable-accounting-bsv.
+No OP_RETURN anywhere (enforced at build + interpreter level).
+All state derived exclusively via deriveState(transcript) → ContractModule.replay(...) (byte-for-byte deterministic across all clients).
+Full negative-battery testing inside the real interpreter.
+Reproducible vectors for every module (games, registries, contracts).
+Desktop (Tauri MSI/NSIS) + web + GHCR container ready from day 1.
+
+2. Core Architecture (must be layered exactly like poker but generalized)Layer 0 – Universal Script Templates (packages/script-templates-ts)Generalize fairPlayLocking, settlementLocking, fundingLocking, revealOrTimeoutLocking, branchBindingPrefix into a universal covenant family.
+Support arbitrary payload fields + Merkle-field-tree commitments (from verifiable-accounting-bsv).
+Full v2 EC-point derivation (GB2616862 §19.C) as default.
+New primitives: conditionalTransferLocking, sqlJournalLocking, registryDeedLocking, multiPartyMPC.
+
+Layer 1 – Universal Engine (packages/engine)Generalize GameModule → ContractModule<S extends ContractState> interface:ts
+
+export interface ContractModule<S extends ContractState = ContractState> {
+  readonly id: string;                    // unique contract identifier
+  init(ruleset: Ruleset, parties: PartyInit[]): S;
+  getLegalActions(state: S, party: number): LegalActions;
+  apply(state: S, action: Action): S;
+  isTimeoutEligible(state: S, now: number): TimeoutResolution | null;
+  isComplete(state: S): boolean;
+  settle(state: S): Payouts | RegistryOutcome | ContractOutcome;
+  serialize(state: S): Uint8Array;
+}
+
+Any game, any registry, any smart contract implements this interface.
+replay must work for any module.
+
+Layer 2 – Universal SDK (packages/sdk)createUniversalSdk(module: ContractModule, transcript: Transcript)  
+deriveState, runContract, buildTx (funding, action, settlement, sql-journal, registry-deed).
+First-class support for:Multi-party mental-poker-style coordination (any MPC)
+On-chain SQL execution via triple-entry-bsv-sql binding
+Verifiable-accounting Merkle-field-tree selective disclosure
+Bonded sub-sat channels for any conditional/escrow logic
+
+Layer 3 – Registry & Contract Modules (pluggable, first-class)Include all existing as built-in modules:Land/Title Registry (from estates + 1-sat deeds)
+IP/Evidence Registry
+Verifiable Accounting Registry
+NFT / Digital Asset Registry
+Identity / Attribution Registry
+AI Memory / Provenance Registry
+Supply-Chain / Commercial Triple-Entry Registry (full triple-entry-bsv-sql native)
+any future contract (developer just implements ContractModule)
+
+Each module gets its own spec/<name>-spec.md subsection.
+
+Layer 4 – On-Chain SQL Integration (native, not bolted-on)Full binding to triple-entry-bsv-sql so any contract can issue real SQL statements that become on-chain journal entries with Merkle proofs.
+Example: sdk.executeOnChainSQL("INSERT INTO deeds ...") → returns tx + proof.
+
+Layer 5 – Clients & Networkingui-core generalized so any contract can have its own React dashboard (reuse waiting-room, lobby, table flow).
+NetworkedContractClient (replaces NetworkedTableClient).
+Relay + indexer support arbitrary contract types.
+Desktop Tauri supervisor unchanged.
+
+3. Traceability & Testing MandateEvery new module must ship with:Positive + negative battery tests in real interpreter
+pnpm <module>-e2e (multi-party, on-chain settlement, SQL journal, audit replay)
+Reproducible vectors
+
+Full CI green before any merge.
+
+4. Phase 1 Deliverables (MVP – must be production-ready)Universal ContractModule + engine + sdk core.
+All 7 registries from previous table shipped as working modules.
+Poker (existing) as the reference game module (no regression).
+On-chain SQL binding live.
+Web + desktop clients with pluggable dashboards.
+Full traceability matrix + BUILD-STATUS.md.
+pnpm universal-e2e that runs one land-title transfer + one accounting entry + one poker hand in the same session.
+
+5. Success CriteriaAny developer can add a brand-new smart contract in <2 days by implementing only the ContractModule interface.
+The SDK must be able to model any smart contract ever conceived (escrow, DEX, DAO, oracle, vesting, insurance, prediction market, etc.) using the same primitives.
+Zero-trust, deterministic, auditable, reproducible, production-grade.
+
+Deliver to me:Complete spec/bsv-universal-sdk-spec.md (with full REQ- list and traceability matrix skeleton).
+Updated BUILD-STATUS.md for the new monorepo.
+High-level architecture diagram (mermaid).
+Exact package structure proposal for the monorepo.
+First 3 ContractModule examples (poker, land-title, triple-entry-accounting).
+
+This must be written at the same engineering level as the current bsv-poker codebase — no hand-waving, no fabrication, full reproducibility.
+

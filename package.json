@@ -1,0 +1,19 @@
+{
+  "name": "bsv-universal-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "engines": { "node": ">=24" },
+  "devDependencies": {
+    "typescript": "5.8.3",
+    "@types/node": "24.0.3"
+  },
+  "scripts": {
+    "check:bans": "node --experimental-strip-types tooling/check-bans/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --experimental-strip-types --test \"packages/**/test/**/*.test.ts\"",
+    "ci": "node --experimental-strip-types tooling/ci/index.ts",
+    "trace": "node --experimental-strip-types tooling/trace/index.ts"
+  }
+}

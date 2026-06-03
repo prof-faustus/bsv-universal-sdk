@@ -1,0 +1,7 @@
+{
+  "name": "@bsv-universal/protocol-types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" }
+}
