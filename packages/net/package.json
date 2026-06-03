@@ -1,0 +1,16 @@
+{
+  "name": "@bsv-universal/net",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@bsv-universal/relay": "workspace:*"
+  },
+  "devDependencies": {
+    "@bsv-universal/protocol-types": "workspace:*",
+    "@bsv-universal/crypto": "workspace:*",
+    "@bsv-universal/engine": "workspace:*",
+    "@bsv-universal/sdk": "workspace:*"
+  }
+}

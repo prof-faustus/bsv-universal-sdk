@@ -2,6 +2,8 @@ export {
   signEnvelope,
   verifyEnvelope,
   chainTranscript,
+  envelopeToHex,
+  envelopeFromHex,
   type Envelope,
   type EnvelopeFields,
   type MessageKind,

@@ -14,7 +14,7 @@ as the code it describes. Counts here MUST match `traceability.txt` and spec §1
 
 ---
 
-## 0. Phase-1 implemented slice (CI-green: bans + trace + typecheck + 36 tests)
+## 0. Phase-1 implemented slice (CI-green: bans + trace + typecheck + 50 tests)
 
 The security-critical spine is built **secure-by-construction first**, anchored on the
 open-information `in-between` module (the engine regression anchor). Every item below has
@@ -27,6 +27,8 @@ working code and a passing `node --test` test under `pnpm ci`. Zero external run
 | `packages/crypto` | REQ-SEC-001 player-key signing (secp256k1), REQ-SEC-002 debiased beacon (rejection sampling, no modulo bias), REQ-SEC-003 commitment-verifying round, REQ-COMMIT-001/002 | `test/beacon.test.ts` (11) |
 | `packages/engine` | REQ-ENG-001 (pure, enumerated legal actions — never selects), REQ-ENG-003/004 (replay folds, total/never-throws), REQ-ENG-006 (settle conserves), REQ-MOD-IB-001/002/004/005/006/007/009/010 | `test/in-between.test.ts` (9) |
 | `packages/sdk` | REQ-SEC-001 signed envelope (actor-binding + prior-hash chaining + monotonic sequence), REQ-SEC-002/003 live path (randomness only via verified beacon), REQ-SEC-004 session total-order, REQ-ARCH-001 (state re-derived by replay) | `test/session.test.ts` (7) |
+| `packages/relay` | REQ-SEC-005 hostile-bounded relay (max body/log/channels, capability tokens, 413/503/401/404, bounded history pagination) + REQ-SEC-004 `/history` append-order authority; node:http wrapper | `test/core.test.ts` (8), `test/http.test.ts` (2) |
+| `packages/net` | REQ-SEC-004 `OrderedSubscriber` (delivers in append order; dropped pokes only delay, never reorder; two subscribers converge) + full two-peer e2e over the relay | `test/ordered.test.ts` (3), `test/e2e.test.ts` (1) |
 | `tooling/check-bans` | REQ-BAN-001..005 static scanner (OP_RETURN/CLTV/CSV/BTC-only) with negative-test fence | runs in `pnpm ci` |
 | `tooling/trace` | REQ-TRACE-001/003 index↔BUILD-STATUS count consistency | runs in `pnpm ci` |
 | `tooling/ci` | REQ-BUILD-005 ordered all-green pipeline | `pnpm ci` |
@@ -40,11 +42,16 @@ working code and a passing `node --test` test under `pnpm ci`. Zero external run
 - #3 (audit not verifying commitments) — `verifyBeaconRound` rejects fake/duplicate/non-seat reveals
   and reveals that don't open their commitment; a forged round is dropped on the live path.
 
+**The two HIGH relay findings are also foreclosed** (`relay`/`net` tests): #4 (ordering after packet
+loss) — the relay's append order is the single authority and `OrderedSubscriber` never inserts behind
+delivered items, so two peers converge byte-identically; #5 (DoS) — body/log/channel caps + capability
+tokens + bounded history pagination, returning 413/503/401/404. The two-peer e2e drives a full
+`in-between` game over the relay and both peers stay in lockstep and re-derive identical state.
+
 **Not yet built (next phases, honestly OPEN):** real BSV-Script interpreter + templates (REQ-SEC-007/008,
-REQ-TPL-*), the bounded hostile relay transport + gap-buffering (REQ-SEC-005, REQ-NET-*), TS↔Go
-differential corpus (REQ-TEST-003), reproducible-vector harness (REQ-TEST-006), client-web + desktop
-+ app-building CI (REQ-SEC-010, REQ-CLIENT-*), poker/land-title/TEA modules, on-chain settlement,
-pre-signed timeout transactions (REQ-MOD-IB-003), and the per-REQ status-row migration.
+REQ-TPL-*), TS↔Go differential corpus (REQ-TEST-003), reproducible-vector harness (REQ-TEST-006),
+client-web + desktop + app-building CI (REQ-SEC-010, REQ-CLIENT-*), poker/land-title/TEA modules,
+on-chain settlement, pre-signed timeout transactions (REQ-MOD-IB-003), and the per-REQ status-row migration.
 
 ---
 

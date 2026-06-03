@@ -1,0 +1,13 @@
+{
+  "name": "@bsv-universal/relay",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/http.ts"
+  },
+  "dependencies": {
+    "@bsv-universal/protocol-types": "workspace:*"
+  }
+}

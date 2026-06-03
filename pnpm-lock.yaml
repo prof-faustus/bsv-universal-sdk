@@ -30,7 +30,32 @@ importers:
         specifier: workspace:*
         version: link:../protocol-types
 
+  packages/net:
+    dependencies:
+      '@bsv-universal/relay':
+        specifier: workspace:*
+        version: link:../relay
+    devDependencies:
+      '@bsv-universal/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+      '@bsv-universal/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@bsv-universal/protocol-types':
+        specifier: workspace:*
+        version: link:../protocol-types
+      '@bsv-universal/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+
   packages/protocol-types: {}
+
+  packages/relay:
+    dependencies:
+      '@bsv-universal/protocol-types':
+        specifier: workspace:*
+        version: link:../protocol-types
 
   packages/sdk:
     dependencies:

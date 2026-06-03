@@ -35,6 +35,15 @@ export interface Envelope extends EnvelopeFields {
   readonly sigHex: string;
 }
 
+/** Wire codec: an envelope travels the relay as opaque hex (the relay never interprets it). */
+export function envelopeToHex(env: Envelope): string {
+  return toHex(utf8(JSON.stringify(env)));
+}
+export function envelopeFromHex(hex: string): Envelope {
+  const o = JSON.parse(new TextDecoder().decode(fromHex(hex))) as Envelope;
+  return o;
+}
+
 function payloadBytes(f: EnvelopeFields): Uint8Array {
   // Canonicalize ONLY the signed field subset — never `sigHex` (which is absent at signing time
   // and present at verify time; including it would make every signature fail to verify).
