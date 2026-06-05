@@ -66,6 +66,7 @@ function sortedBalances(entries: (readonly [string, bigint])[]): (readonly [stri
 }
 function bal(state: InBetweenState, party: string): bigint {
   for (const [p, v] of state.balances) if (p === party) return v;
+  /* node:coverage ignore next -- unreachable: bal is only called for a registered party */
   return 0n;
 }
 function withBalance(state: InBetweenState, party: string, next: bigint): (readonly [string, bigint])[] {

@@ -37,8 +37,14 @@ not web-tutorial quality.** Defect classes are made impossible by construction a
 - **SAST gate** (`tooling/sast`, CI): forbids `JSON.parse` outside the safe wrapper, `as any`, type/lint
   suppressions, unbounded loops, and `Math.random` in production code. Zero suppressions; strict TS.
 - **Written threat model:** `THREAT-MODEL.md` (funded-adversary assumption; STRIDE → mitigation → test).
+- **Coverage gate (REQ-TEST-010):** CI enforces **100% FUNCTION coverage** on the determinism-critical
+  consensus core (`protocol-types`, `crypto`, `engine`, `script`) — every function exercised by a test.
+  Line **99.5%** / branch **92%** reported (exact-100 line isn't gated because Node attributes type-only
+  lines as "uncovered"; the differentials + fuzz provide the deeper assurance). Writing it closed a real
+  gap: `OP_CHECKMULTISIG` had been entirely untested.
 
-CI gates (all green): `check:bans` → `check:sast` → `trace` → `typecheck` → tests.
+CI gates (all green): `check:bans` → `check:sast` → `trace` → `typecheck` → tests → **coverage gate** →
+native + differentials + web build.
 
 
 The security-critical spine is built **secure-by-construction first**, anchored on the

@@ -6,10 +6,6 @@ import { OP, BANNED_OPCODES, type EvalLimits } from './opcodes.ts';
 
 export type Op = { readonly kind: 'push'; readonly push: Uint8Array } | { readonly kind: 'op'; readonly code: number };
 
-export function isPush(op: Op): op is { kind: 'push'; push: Uint8Array } {
-  return op.kind === 'push';
-}
-
 /** Parse raw script bytes into ops. Bounded by limits; rejects banned opcodes at parse time. */
 export function parseScript(bytes: Uint8Array, limits: EvalLimits): Parsed<Op[]> {
   if (!(bytes instanceof Uint8Array)) return { ok: false, reason: 'script must be bytes' };

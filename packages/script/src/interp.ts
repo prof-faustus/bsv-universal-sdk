@@ -248,7 +248,7 @@ function dispatch(vm: Vm, code: number): EvalResult {
     case OP.OP_CHECKMULTISIG:
     case OP.OP_CHECKMULTISIGVERIFY:
       return checkMultisig(vm, code === OP.OP_CHECKMULTISIGVERIFY);
-    /* c8 ignore next 2 */
+    /* node:coverage ignore next 2 */
     default:
       return { ok: false, reason: `unhandled whitelisted opcode 0x${code.toString(16)}` };
   }

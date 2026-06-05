@@ -24,6 +24,22 @@ const STEPS: CIStep[] = [
   { name: 'requirement trace (REQ-TRACE-001/004)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/trace/index.ts'] },
   { name: 'typecheck', cmd: 'npx', args: ['tsc', '-p', 'tsconfig.json', '--noEmit'] },
   { name: 'tests', cmd: 'node', args: ['--experimental-strip-types', '--test', 'packages/**/test/**/*.test.ts'] },
+  // REQ-TEST-010 coverage gate: 100% FUNCTION coverage on the determinism-critical consensus core
+  // (every function exercised by a test). Line/branch are reported; exact-100 line is not gated
+  // because Node attributes type-only lines as "uncovered". Deeper assurance: the differentials + fuzz.
+  {
+    name: 'coverage gate (REQ-TEST-010: 100% functions on consensus core)',
+    cmd: 'node',
+    args: [
+      '--experimental-strip-types', '--test', '--experimental-test-coverage', '--test-coverage-functions=100',
+      '--test-coverage-include=packages/protocol-types/src/**',
+      '--test-coverage-include=packages/crypto/src/**',
+      '--test-coverage-include=packages/engine/src/**',
+      '--test-coverage-include=packages/script/src/**',
+      'packages/protocol-types/test/**/*.test.ts', 'packages/crypto/test/**/*.test.ts',
+      'packages/engine/test/**/*.test.ts', 'packages/script/test/**/*.test.ts',
+    ],
+  },
   // native client render/play battery (drives the real entry over scripted stdin — not "process alive")
   { name: 'desktop play tests', cmd: 'node', args: ['--experimental-strip-types', '--test', 'apps/desktop/test/**/*.test.ts'] },
   // TS↔Go differential (REQ-TEST-003): regenerate the corpus from TS, then assert the independent
