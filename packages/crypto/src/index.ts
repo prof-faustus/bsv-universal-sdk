@@ -213,8 +213,12 @@ export function verifyBeaconRound(round: BeaconRound, eligible: readonly Uint8Ar
   if (honest.length === 0) return { ok: false, reason: 'no honest reveal — beacon unbiasable condition fails' };
   if (round.prevBeacon.length !== 32) return { ok: false, reason: 'prevBeacon must be 32 bytes' };
 
-  // Canonical order by partyId, then fold into the seed (REQ-DET-003 + REQ-DET-005).
-  const ordered = [...honest].sort((a, b) => idHex(a.party).localeCompare(idHex(b.party)));
+  // Canonical, locale-INDEPENDENT order by partyId, then fold into the seed (REQ-DET-003 + REQ-DET-005).
+  const ordered = [...honest].sort((a, b) => {
+    const x = idHex(a.party);
+    const y = idHex(b.party);
+    return x < y ? -1 : x > y ? 1 : 0;
+  });
   const parts: Uint8Array[] = [u32be(round.roundNo), round.prevBeacon];
   for (const r of ordered) parts.push(r.party, r.secret);
   const seed = taggedHash(HASH_TAGS.beacon, ...parts);

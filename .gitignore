@@ -7,3 +7,5 @@ dist/
 apps/desktop/sea-config.json
 *.blob
 *.exe
+# generated differential corpus (REQ-TEST-003)
+go/vectors.json

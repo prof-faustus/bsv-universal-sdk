@@ -196,6 +196,15 @@ importers:
         specifier: workspace:*
         version: link:../script
 
+  tooling/diff:
+    dependencies:
+      '@bsv-universal/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+      '@bsv-universal/protocol-types':
+        specifier: workspace:*
+        version: link:../../packages/protocol-types
+
 packages:
 
   '@asamuzakjp/css-color@3.2.0':

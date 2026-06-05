@@ -4,6 +4,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -11,7 +12,11 @@ interface CIStep {
   readonly name: string;
   readonly cmd: string;
   readonly args: readonly string[];
+  readonly cwd?: string; // relative to ROOT
+  readonly env?: Readonly<Record<string, string>>;
 }
+
+const GO = 'go';
 
 const STEPS: CIStep[] = [
   { name: 'static bans (REQ-BAN-001..005)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/check-bans/index.ts'] },
@@ -21,6 +26,11 @@ const STEPS: CIStep[] = [
   { name: 'tests', cmd: 'node', args: ['--experimental-strip-types', '--test', 'packages/**/test/**/*.test.ts'] },
   // native client render/play battery (drives the real entry over scripted stdin — not "process alive")
   { name: 'desktop play tests', cmd: 'node', args: ['--experimental-strip-types', '--test', 'apps/desktop/test/**/*.test.ts'] },
+  // TS↔Go differential (REQ-TEST-003): regenerate the corpus from TS, then assert the independent
+  // Go engine is byte-identical. Plus the Go unit tests. Divergence fails the build.
+  { name: 'differential corpus (TS)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/diff/gen-vectors.ts'] },
+  { name: 'TS↔Go differential', cmd: GO, args: ['run', './diff'], cwd: 'go', env: { GOFLAGS: '-trimpath' } },
+  { name: 'Go unit tests', cmd: GO, args: ['test', './...'], cwd: 'go', env: { GOFLAGS: '-trimpath' } },
   // REQ-SEC-010: the shippable app MUST build AND its render/adversarial battery MUST pass — no
   // green-by-omission. A web client that does not build or render is a CI failure, not a pass.
   { name: 'client-web render tests', cmd: 'pnpm', args: ['--filter', '@bsv-universal/client-web', 'test'] },
@@ -30,7 +40,9 @@ const STEPS: CIStep[] = [
 let failed = false;
 for (const step of STEPS) {
   process.stdout.write(`\n=== ${step.name} ===\n`);
-  const r = spawnSync(step.cmd, step.args, { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
+  const cwd = step.cwd ? join(ROOT, step.cwd) : ROOT;
+  const env = step.env ? { ...process.env, ...step.env } : process.env;
+  const r = spawnSync(step.cmd, step.args, { cwd, env, stdio: 'inherit', shell: process.platform === 'win32' });
   if (r.status !== 0) {
     process.stderr.write(`\nCI FAILED at: ${step.name} (exit ${r.status})\n`);
     failed = true;

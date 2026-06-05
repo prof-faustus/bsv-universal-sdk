@@ -57,8 +57,12 @@ function rulesetHash(r: Ruleset): string {
   return s;
 }
 
+/** Locale-INDEPENDENT codepoint comparison (REQ-DET-003: ordering must be deterministic everywhere). */
+function cmpCodepoint(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
 function sortedBalances(entries: (readonly [string, bigint])[]): (readonly [string, bigint])[] {
-  return [...entries].sort((a, b) => a[0].localeCompare(b[0]));
+  return [...entries].sort((a, b) => cmpCodepoint(a[0], b[0]));
 }
 function bal(state: InBetweenState, party: string): bigint {
   for (const [p, v] of state.balances) if (p === party) return v;

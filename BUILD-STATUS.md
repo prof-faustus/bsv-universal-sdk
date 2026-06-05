@@ -14,7 +14,7 @@ as the code it describes. Counts here MUST match `traceability.txt` and spec §1
 
 ---
 
-## 0. Phase-1 implemented slice (CI-green: bans + SAST + trace + typecheck + 94 engine + 3 native + 5 web tests + web build)
+## 0. Phase-1 implemented slice (CI-green: bans + SAST + trace + typecheck + 94 engine + 3 native + 5 web tests + web build + TS↔Go differential)
 
 **All 10 ESTATES audit findings are now closed in code and tested (#1–#10).** Crypto/serialization were
 made **isomorphic** (audited `@noble/curves` + `@noble/hashes`, no `node:crypto`) so the real engine
@@ -60,6 +60,7 @@ working code and a passing `node --test` test under `pnpm ci`. Zero external run
 | `packages/board` | Rich graphical board renderer (Canvas 2D): one `drawBoard()` routine drawing the felt table, cards, face-down hidden card, pot chips and acting-seat highlight. Used by the web `<canvas>` AND a native PNG verifier — what is verified is what ships | `test/render.test.ts` (3 → PNGs) |
 | `apps/client-web` | REQ-SEC-010 + REQ-CLIENT-001/002: menu-driven React+Vite UI with a **graphical canvas card-table** (`drawBoard`), running the real engine in-browser (isomorphic crypto). Human clicks every action; nothing auto-plays; explicit silence/timeout outcome shown. Builds via `vite build`; **render+click verified in jsdom**; board pixels verified via the PNG renderer | `test/app.test.tsx` (5, vitest) |
 | `apps/desktop` | **True native Windows `.exe`** (Node SEA — NOT Tauri/webview) running the real engine as an interactive console client; menu-driven, nothing auto-plays. `pnpm --filter @bsv-universal/desktop build:exe` → `dist/in-between.exe`. **Render+play VERIFIED by driving the real entry over scripted stdin to GAME OVER** | `test/play.test.ts` (3) |
+| `go/` (Go) | REQ-TEST-003 **TS↔Go differential**: an INDEPENDENT Go reimplementation of the canonical serialization, domain-separated hashing, debiased `drawValue`, and the in-between state machine + settlement. A TS-generated corpus (60 vectors / 635 steps) is replayed in Go and every canonical state hash must be **byte-identical**; mismatch fails CI. Plus `go test`. (This caught a real determinism bug: locale-dependent `localeCompare` → fixed to codepoint order, REQ-DET-003.) | `go/diff` + `go/inbetween/*_test.go` |
 | `tooling/check-bans` | REQ-BAN-001..005 static scanner (OP_RETURN/CLTV/CSV/BTC-only) with negative-test fence | runs in `pnpm ci` |
 | `tooling/trace` | REQ-TRACE-001/003 index↔BUILD-STATUS count consistency | runs in `pnpm ci` |
 | `tooling/ci` | REQ-BUILD-005 ordered all-green pipeline | `pnpm ci` |

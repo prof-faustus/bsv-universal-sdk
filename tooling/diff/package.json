@@ -1,0 +1,10 @@
+{
+  "name": "@bsv-universal/diff-gen",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@bsv-universal/engine": "workspace:*",
+    "@bsv-universal/protocol-types": "workspace:*"
+  }
+}
