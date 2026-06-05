@@ -127,11 +127,16 @@ export type Canonical =
   | Canonical[]
   | { [k: string]: Canonical };
 
+/** Max nesting depth for canonical encoding — bounds recursion (NASA P10 #1, CWE-674). */
+export const MAX_CANON_DEPTH = 64;
+
 export function canonicalStringify(v: Canonical): string {
-  return encode(v);
+  return encode(v, 0);
 }
 
-function encode(v: Canonical): string {
+function encode(v: Canonical, depth: number): string {
+  // CWE-674: fail-closed on excessive nesting rather than exhausting the stack.
+  if (depth > MAX_CANON_DEPTH) throw new Error(`canonical nesting exceeds MAX_CANON_DEPTH=${MAX_CANON_DEPTH}`);
   if (v === null) return 'null';
   switch (typeof v) {
     case 'string':
@@ -145,15 +150,60 @@ function encode(v: Canonical): string {
       if (!Number.isSafeInteger(v)) throw new Error(`unsafe integer in canonical path (use bigint): ${v}`);
       return v.toString();
     case 'object':
-      if (Array.isArray(v)) return `[${v.map(encode).join(',')}]`;
+      if (Array.isArray(v)) return `[${v.map((e) => encode(e, depth + 1)).join(',')}]`;
       // REQ-DET-003: sort keys to a canonical order before iterating.
       return `{${Object.keys(v)
         .sort()
-        .map((k) => `${JSON.stringify(k)}:${encode(v[k] as Canonical)}`)
+        .map((k) => `${JSON.stringify(k)}:${encode(v[k] as Canonical, depth + 1)}`)
         .join(',')}}`;
     default:
       throw new Error(`unserializable type in canonical path: ${typeof v}`);
   }
+}
+
+// ----------------------------------------------------------------------------- safe deserialization
+// CWE-502 / SANS: untrusted bytes are HOSTILE. `safeJsonParse` is TOTAL — it length-bounds the input
+// and never throws (a malformed or oversized document is a typed rejection, not an exception). The
+// returned value is `unknown`: callers MUST validate every field with the strict guards below before
+// use. There is no `as T` shortcut at a trust boundary.
+export const MAX_JSON_BYTES = 1 << 20; // 1 MiB hard cap on any single decoded document
+
+export type Parsed<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly reason: string };
+
+export function safeJsonParse(text: string, maxBytes: number = MAX_JSON_BYTES): Parsed<unknown> {
+  if (typeof text !== 'string') return { ok: false, reason: 'input is not a string' };
+  if (Buffer.byteLength(text, 'utf8') > maxBytes) return { ok: false, reason: `input exceeds ${maxBytes} bytes` };
+  try {
+    return { ok: true, value: JSON.parse(text) as unknown };
+  } catch (e) {
+    return { ok: false, reason: `malformed JSON: ${(e as Error).message}` };
+  }
+}
+
+/** A plain object (not null, not array). Fail-closed type guard for decoded JSON. */
+export function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/** Bounded array guard: rejects non-arrays and arrays longer than `max` (CWE-770 resource control). */
+export function expectArray(v: unknown, max: number, field: string): unknown[] {
+  if (!Array.isArray(v)) throw new Error(`${field} must be an array`);
+  if (v.length > max) throw new Error(`${field} length ${v.length} exceeds max ${max}`);
+  return v;
+}
+
+/** Strict hex-of-exact-byte-length guard for decoded fields (REQ-SEC-006 / CWE-20). */
+export function expectHex(v: unknown, bytes: number, field: string): Uint8Array {
+  if (typeof v !== 'string' || v.length !== bytes * 2) throw new Error(`${field} must be ${bytes}-byte hex`);
+  return fromHex(v); // fromHex re-validates the alphabet (REQ-SEC-009)
+}
+
+/** Strict bounded-hex guard (1..maxBytes), for variable-length fields like secrets/signatures. */
+export function expectBoundedHex(v: unknown, maxBytes: number, field: string): Uint8Array {
+  if (typeof v !== 'string' || v.length === 0 || v.length % 2 !== 0 || v.length / 2 > maxBytes) {
+    throw new Error(`${field} must be non-empty hex of at most ${maxBytes} bytes`);
+  }
+  return fromHex(v);
 }
 
 /** Canonical state hash (REQ-DET-001 + REQ-DET-005). */

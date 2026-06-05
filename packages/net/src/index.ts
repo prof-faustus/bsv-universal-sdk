@@ -38,20 +38,22 @@ export class OrderedSubscriber {
     this.pumping = true;
     let delivered = 0;
     try {
-      for (;;) {
-        const page = await this.source.history(this.len);
-        if (page.items.length === 0) {
-          // nothing new from our cursor; we are caught up to the authoritative prefix
-          if (this.len >= page.total) break;
-          // cursor < total but page empty (shouldn't happen with a correct source) → stop safely
-          break;
-        }
-        for (const item of page.items) {
+      // NASA P10 #2: bounded loop. Each iteration advances `len` by ≥1 (or breaks), so the loop
+      // terminates in at most MAX_PAGES iterations; the cap is a fail-closed backstop against a
+      // hostile/buggy source that never reports being caught up.
+      const MAX_PAGES = 10_000_000;
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const got = await this.source.history(this.len);
+        if (!got || !Array.isArray(got.items) || typeof got.total !== 'number') break; // hostile source → stop safely
+        if (got.items.length === 0) break; // caught up (or a misbehaving source) — never spin
+        const before = this.len;
+        for (const item of got.items) {
           this.onMessage(item, this.len);
           this.len += 1;
           delivered += 1;
         }
-        if (this.len >= page.total) break;
+        if (this.len === before) break; // no forward progress — fail-closed
+        if (this.len >= got.total) break;
       }
     } finally {
       this.pumping = false;

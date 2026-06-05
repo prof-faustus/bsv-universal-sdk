@@ -15,6 +15,7 @@ interface CIStep {
 
 const STEPS: CIStep[] = [
   { name: 'static bans (REQ-BAN-001..005)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/check-bans/index.ts'] },
+  { name: 'SAST gate (SANS/CWE + NASA P10 + MS SDL)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/sast/index.ts'] },
   { name: 'requirement trace (REQ-TRACE-001/004)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/trace/index.ts'] },
   { name: 'typecheck', cmd: 'npx', args: ['tsc', '-p', 'tsconfig.json', '--noEmit'] },
   { name: 'tests', cmd: 'node', args: ['--experimental-strip-types', '--test', 'packages/**/test/**/*.test.ts'] },

@@ -4,6 +4,8 @@ export {
   chainTranscript,
   envelopeToHex,
   envelopeFromHex,
+  tryEnvelopeFromHex,
+  MAX_ENVELOPE_BYTES,
   type Envelope,
   type EnvelopeFields,
   type MessageKind,

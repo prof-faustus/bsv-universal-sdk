@@ -41,16 +41,19 @@ function pubFromPriv(priv: Uint8Array): Uint8Array {
 
 /** Generate a player master key (REQ-SEC-001). Long-lived; the player's sole signing authority. */
 export function genKeyPair(): KeyPair {
-  // Reject the negligible-probability zero/out-of-range scalar by letting ECDH validate.
-  for (;;) {
+  // NASA P10 #2: bounded loop. A 32-byte CSPRNG scalar is out of secp256k1 range with probability
+  // < 2^-127, so a handful of tries is overwhelming; we cap and fail-closed rather than spin.
+  const MAX_TRIES = 16;
+  for (let i = 0; i < MAX_TRIES; i++) {
     const priv = new Uint8Array(randomBytes(32));
     try {
       const pub = pubFromPriv(priv);
       return { priv, pub };
     } catch {
-      /* retry */
+      /* extraordinarily rare invalid scalar — retry within the bound */
     }
   }
+  /* c8 ignore next */ throw new Error('genKeyPair: exhausted bounded retries (statistically impossible)');
 }
 
 export function keyPairFromPriv(priv: Uint8Array): KeyPair {
@@ -164,7 +167,18 @@ function idHex(p: Uint8Array): string {
  *   ≥1 honest reveal (the unbiasable condition). The seed derives ONLY from the verified reveal set,
  *   ordered canonically by partyId (REQ-DET-003). Total: returns a typed result, never throws.
  */
+/** Hard cap on participants in any beacon round — bounds all per-round work (CWE-770). */
+export const MAX_PARTIES = 64;
+
 export function verifyBeaconRound(round: BeaconRound, eligible: readonly Uint8Array[]): RoundCheck {
+  // SANS: the round is hostile input. Reject structurally-invalid shapes BEFORE doing any work.
+  if (round === null || typeof round !== 'object') return { ok: false, reason: 'round must be an object' };
+  if (!Array.isArray(round.commits) || !Array.isArray(round.reveals)) return { ok: false, reason: 'commits/reveals must be arrays' };
+  if (!Number.isInteger(round.roundNo) || round.roundNo < 0 || round.roundNo > 0xffffffff) return { ok: false, reason: 'roundNo out of range' };
+  if (eligible.length === 0 || eligible.length > MAX_PARTIES) return { ok: false, reason: 'eligible set size out of bounds' };
+  // CWE-770: bound the work — a hostile round cannot enumerate unboundedly.
+  if (round.commits.length > MAX_PARTIES || round.reveals.length > MAX_PARTIES) return { ok: false, reason: 'too many commits/reveals' };
+
   const eligibleSet = new Set(eligible.map(idHex));
 
   // Commitments: one per eligible seat, no dup, only eligible.

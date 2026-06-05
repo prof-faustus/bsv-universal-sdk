@@ -11,7 +11,7 @@ import {
   encodeActionBody,
   encodeBeaconBody,
   envelopeToHex,
-  envelopeFromHex,
+  tryEnvelopeFromHex,
   type EnvelopeFields,
 } from '@bsv-universal/sdk';
 import { inBetweenModule as M, initInBetween, type InBetweenState, type Ruleset } from '@bsv-universal/engine';
@@ -55,10 +55,13 @@ test('two peers converge to identical state over the relay (full stack)', async 
   const sessions = [mkSession(), mkSession()];
 
   // each peer subscribes; on delivery it feeds the envelope to its own Session
+  // Network boundary: a hostile/malformed message is DROPPED, never thrown (SANS/CWE-502).
   const subs = sessions.map(
     (s) =>
       new OrderedSubscriber(channelSource(core, 'ab', 'cap'), (hex) => {
-        s.accept(envelopeFromHex(hex));
+        const parsed = tryEnvelopeFromHex(hex);
+        if (!parsed.ok) return; // drop
+        s.accept(parsed.value);
       }),
   );
   async function pumpAll() {

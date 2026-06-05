@@ -12,11 +12,23 @@ import {
   utf8,
   fromHex,
   toHex,
+  tryFromHex,
+  safeJsonParse,
+  isObject,
   type Canonical,
+  type Parsed,
 } from '@bsv-universal/protocol-types';
 import { signData, verifyData, partyId, type KeyPair } from '@bsv-universal/crypto';
 
 export type MessageKind = 'start' | 'action' | 'leave' | 'commit' | 'reveal' | 'randomness';
+const MESSAGE_KINDS: readonly MessageKind[] = ['start', 'action', 'leave', 'commit', 'reveal', 'randomness'];
+const NETWORKS = ['main', 'test', 'regtest'] as const;
+
+/** Hard caps on envelope structure (CWE-770). The relay's maxBody is the transport-level mirror. */
+export const MAX_ENVELOPE_BYTES = 256 * 1024;
+const MAX_ID_LEN = 128; // moduleId / contractId string length
+const MAX_BODY_HEX = MAX_ENVELOPE_BYTES * 2;
+const MAX_SIG_BYTES = 80; // DER secp256k1 sig is ≤ 72; allow slack
 
 export interface EnvelopeFields {
   readonly networkId: 'main' | 'test' | 'regtest';
@@ -39,9 +51,59 @@ export interface Envelope extends EnvelopeFields {
 export function envelopeToHex(env: Envelope): string {
   return toHex(utf8(JSON.stringify(env)));
 }
+
+/**
+ * TOTAL, validating decoder for envelopes arriving from the (hostile) relay (CWE-502/20/770).
+ * Every field is type- and length-checked; it NEVER throws on adversarial input — a malformed,
+ * oversized, or wrong-shaped message is a typed rejection. Use this at the network boundary.
+ */
+export function tryEnvelopeFromHex(hex: string): Parsed<Envelope> {
+  if (typeof hex !== 'string' || hex.length > MAX_BODY_HEX) return { ok: false, reason: 'envelope hex too large or not a string' };
+  const bytes = tryFromHex(hex);
+  if (!bytes.ok) return { ok: false, reason: `envelope hex: ${bytes.reason}` };
+  const parsed = safeJsonParse(new TextDecoder().decode(bytes.bytes), MAX_ENVELOPE_BYTES);
+  if (!parsed.ok) return { ok: false, reason: parsed.reason };
+  const o = parsed.value;
+  if (!isObject(o)) return { ok: false, reason: 'envelope must be a JSON object' };
+
+  const str = (v: unknown, max: number) => typeof v === 'string' && v.length <= max;
+  const hexStr = (v: unknown, max: number) => typeof v === 'string' && v.length % 2 === 0 && v.length <= max && /^[0-9a-fA-F]*$/.test(v);
+
+  if (!NETWORKS.includes(o.networkId as (typeof NETWORKS)[number])) return { ok: false, reason: 'bad networkId' };
+  if (!str(o.moduleId, MAX_ID_LEN)) return { ok: false, reason: 'bad moduleId' };
+  if (!str(o.contractId, MAX_ID_LEN)) return { ok: false, reason: 'bad contractId' };
+  if (!Number.isInteger(o.protocolVersion) || (o.protocolVersion as number) < 0 || (o.protocolVersion as number) > 0xffff) return { ok: false, reason: 'bad protocolVersion' };
+  if (!MESSAGE_KINDS.includes(o.messageKind as MessageKind)) return { ok: false, reason: 'bad messageKind' };
+  if (!hexStr(o.seatId, 66)) return { ok: false, reason: 'bad seatId' }; // 33-byte partyId
+  if (!hexStr(o.actorPubKeyHex, 130)) return { ok: false, reason: 'bad actorPubKeyHex' }; // 65-byte pub
+  if (!hexStr(o.priorTranscriptHash, 64)) return { ok: false, reason: 'bad priorTranscriptHash' }; // 32-byte
+  if (!Number.isInteger(o.sequenceNo) || (o.sequenceNo as number) < 0 || (o.sequenceNo as number) > Number.MAX_SAFE_INTEGER) return { ok: false, reason: 'bad sequenceNo' };
+  if (!hexStr(o.bodyHex, MAX_BODY_HEX)) return { ok: false, reason: 'bad bodyHex' };
+  if (!hexStr(o.sigHex, MAX_SIG_BYTES * 2)) return { ok: false, reason: 'bad sigHex' };
+
+  return {
+    ok: true,
+    value: {
+      networkId: o.networkId as Envelope['networkId'],
+      moduleId: o.moduleId as string,
+      contractId: o.contractId as string,
+      protocolVersion: o.protocolVersion as number,
+      messageKind: o.messageKind as MessageKind,
+      seatId: o.seatId as string,
+      actorPubKeyHex: o.actorPubKeyHex as string,
+      priorTranscriptHash: o.priorTranscriptHash as string,
+      sequenceNo: o.sequenceNo as number,
+      bodyHex: o.bodyHex as string,
+      sigHex: o.sigHex as string,
+    },
+  };
+}
+
+/** Throwing convenience wrapper for TRUSTED callers/tests only. Never use at a trust boundary. */
 export function envelopeFromHex(hex: string): Envelope {
-  const o = JSON.parse(new TextDecoder().decode(fromHex(hex))) as Envelope;
-  return o;
+  const r = tryEnvelopeFromHex(hex);
+  if (!r.ok) throw new Error(`envelopeFromHex: ${r.reason}`);
+  return r.value;
 }
 
 function payloadBytes(f: EnvelopeFields): Uint8Array {
