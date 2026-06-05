@@ -12,7 +12,7 @@ import {
   type Tx,
 } from '@bsv-universal/tx';
 import { toHex } from '@bsv-universal/protocol-types';
-import { genKeyPair, partyId, commit as commitSecret, verifyBeaconRound, ZERO_BEACON, type BeaconRound } from '@bsv-universal/crypto';
+import { genKeyPair, partyId, commit as commitSecret, verifyBeaconRound, ZERO_BEACON, signData, verifyData, signBitcoin, verifyBitcoin, type BeaconRound } from '@bsv-universal/crypto';
 
 // shared stub checker: accept iff non-empty sig & pub and sig[0] === pub[0]
 const STUB: SigChecker = { check: (sig, pub) => sig.length > 0 && pub.length > 0 && sig[0] === pub[0] };
@@ -181,9 +181,39 @@ for (let s = 0; s < 24; s++) {
   }
 }
 
-const out = { version: 1, stub: stubName(), scriptVecs, txidVecs, sighashVecs, valueVecs, covVecs, beaconVecs };
+// ---- auth (signature) vectors: ECDSA verification parity (REQ-SEC-001) ----------------------
+// TS signs with @noble; the self-contained Go secp256k1 verifier must agree on accept/reject across
+// valid + adversarial (wrong key / tampered message / random sig) cases.
+interface AuthVec { kind: 'data' | 'bitcoin'; msg: string; der: string; pub: string; ok: boolean }
+const authVecs: AuthVec[] = [];
+for (let s = 0; s < 24; s++) {
+  const kp = genKeyPair();
+  const other = genKeyPair();
+  const msg = new Uint8Array(randomBytes(8 + (s % 40)));
+  if (s % 2 === 0) {
+    const der = signData(msg, kp);
+    switch (s % 6) {
+      case 0: authVecs.push({ kind: 'data', msg: toHex(msg), der: toHex(der), pub: toHex(kp.pub), ok: verifyData(msg, der, kp.pub) }); break; // valid
+      case 2: authVecs.push({ kind: 'data', msg: toHex(msg), der: toHex(der), pub: toHex(other.pub), ok: verifyData(msg, der, other.pub) }); break; // wrong key
+      default: {
+        const bad = new Uint8Array(msg); bad[0] = (bad[0] ?? 0) ^ 0xff;
+        authVecs.push({ kind: 'data', msg: toHex(bad), der: toHex(der), pub: toHex(kp.pub), ok: verifyData(bad, der, kp.pub) }); // tampered msg
+      }
+    }
+  } else {
+    const pre = new Uint8Array(randomBytes(40 + (s % 20)));
+    const der = signBitcoin(pre, kp);
+    switch (s % 6) {
+      case 1: authVecs.push({ kind: 'bitcoin', msg: toHex(pre), der: toHex(der), pub: toHex(kp.pub), ok: verifyBitcoin(pre, der, kp.pub) }); break; // valid
+      case 3: { const rnd = new Uint8Array(randomBytes(70)); authVecs.push({ kind: 'bitcoin', msg: toHex(pre), der: toHex(rnd), pub: toHex(kp.pub), ok: verifyBitcoin(pre, rnd, kp.pub) }); break; } // random der
+      default: authVecs.push({ kind: 'bitcoin', msg: toHex(pre), der: toHex(der), pub: toHex(other.pub), ok: verifyBitcoin(pre, der, other.pub) }); // wrong key
+    }
+  }
+}
+
+const out = { version: 1, stub: stubName(), scriptVecs, txidVecs, sighashVecs, valueVecs, covVecs, beaconVecs, authVecs };
 const outDir = fileURLToPath(new URL('../../go/', import.meta.url));
 mkdirSync(outDir, { recursive: true });
 writeFileSync(outDir + 'value-vectors.json', JSON.stringify(out));
-console.log(`wrote value vectors: ${scriptVecs.length} script, ${txidVecs.length} txid, ${sighashVecs.length} sighash, ${valueVecs.length} value, ${covVecs.length} covenant, ${beaconVecs.length} beacon`);
+console.log(`wrote value vectors: ${scriptVecs.length} script, ${txidVecs.length} txid, ${sighashVecs.length} sighash, ${valueVecs.length} value, ${covVecs.length} covenant, ${beaconVecs.length} beacon, ${authVecs.length} auth`);
 void serializeTx;

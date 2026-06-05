@@ -4,6 +4,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -11,6 +12,7 @@ import (
 
 	"bsvuniversal/beacon"
 	"bsvuniversal/script"
+	"bsvuniversal/secp256k1"
 	"bsvuniversal/txmodel"
 )
 
@@ -130,6 +132,13 @@ type corpus struct {
 		OK         bool     `json:"ok"`
 		Seed       string   `json:"seed"`
 	} `json:"beaconVecs"`
+	AuthVecs []struct {
+		Kind string `json:"kind"`
+		Msg  string `json:"msg"`
+		Der  string `json:"der"`
+		Pub  string `json:"pub"`
+		OK   bool   `json:"ok"`
+	} `json:"authVecs"`
 }
 
 // shared stub checker — MUST match the TS generator's STUB.
@@ -216,11 +225,29 @@ func main() {
 		}
 	}
 
-	total := len(c.ScriptVecs) + len(c.TxidVecs) + len(c.SighashVecs) + len(c.ValueVecs) + len(c.CovVecs) + len(c.BeaconVecs)
+	for i, v := range c.AuthVecs {
+		msg := fromHex(v.Msg)
+		var digest []byte
+		if v.Kind == "bitcoin" {
+			h1 := sha256.Sum256(msg)
+			h2 := sha256.Sum256(h1[:])
+			digest = h2[:]
+		} else {
+			h := sha256.Sum256(msg)
+			digest = h[:]
+		}
+		ok := secp256k1.Verify(fromHex(v.Pub), digest, fromHex(v.Der))
+		if ok != v.OK {
+			bad++
+			fmt.Printf("auth %d (%s): ts=%v go=%v\n", i, v.Kind, v.OK, ok)
+		}
+	}
+
+	total := len(c.ScriptVecs) + len(c.TxidVecs) + len(c.SighashVecs) + len(c.ValueVecs) + len(c.CovVecs) + len(c.BeaconVecs) + len(c.AuthVecs)
 	if bad > 0 {
 		fmt.Printf("\nVALUE DIFFERENTIAL FAILED — %d mismatch(es) of %d checks\n", bad, total)
 		os.Exit(1)
 	}
-	fmt.Printf("value differential OK — %d checks (script %d, txid %d, sighash %d, value %d, covenant %d, beacon %d): Go byte-identical to TS\n",
-		total, len(c.ScriptVecs), len(c.TxidVecs), len(c.SighashVecs), len(c.ValueVecs), len(c.CovVecs), len(c.BeaconVecs))
+	fmt.Printf("value differential OK — %d checks (script %d, txid %d, sighash %d, value %d, covenant %d, beacon %d, auth %d): Go byte-identical to TS\n",
+		total, len(c.ScriptVecs), len(c.TxidVecs), len(c.SighashVecs), len(c.ValueVecs), len(c.CovVecs), len(c.BeaconVecs), len(c.AuthVecs))
 }
