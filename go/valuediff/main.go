@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 
+	"bsvuniversal/beacon"
 	"bsvuniversal/script"
 	"bsvuniversal/txmodel"
 )
@@ -114,6 +115,21 @@ type corpus struct {
 		Amount       string `json:"amount"`
 		OK           bool   `json:"ok"`
 	} `json:"covVecs"`
+	BeaconVecs []struct {
+		Commits []struct {
+			Party      string `json:"party"`
+			Commitment string `json:"commitment"`
+		} `json:"commits"`
+		Reveals []struct {
+			Party  string `json:"party"`
+			Secret string `json:"secret"`
+		} `json:"reveals"`
+		Eligible   []string `json:"eligible"`
+		RoundNo    int      `json:"roundNo"`
+		PrevBeacon string   `json:"prevBeacon"`
+		OK         bool     `json:"ok"`
+		Seed       string   `json:"seed"`
+	} `json:"beaconVecs"`
 }
 
 // shared stub checker — MUST match the TS generator's STUB.
@@ -177,11 +193,34 @@ func main() {
 		}
 	}
 
-	total := len(c.ScriptVecs) + len(c.TxidVecs) + len(c.SighashVecs) + len(c.ValueVecs) + len(c.CovVecs)
+	for i, v := range c.BeaconVecs {
+		commits := make([]beacon.Commit, len(v.Commits))
+		for k, cm := range v.Commits {
+			commits[k] = beacon.Commit{Party: fromHex(cm.Party), Commitment: fromHex(cm.Commitment)}
+		}
+		reveals := make([]beacon.Reveal, len(v.Reveals))
+		for k, rv := range v.Reveals {
+			reveals[k] = beacon.Reveal{Party: fromHex(rv.Party), Secret: fromHex(rv.Secret)}
+		}
+		elig := make([][]byte, len(v.Eligible))
+		for k, e := range v.Eligible {
+			elig[k] = fromHex(e)
+		}
+		ok, seed := beacon.VerifyRound(commits, reveals, elig, v.RoundNo, fromHex(v.PrevBeacon))
+		if ok != v.OK {
+			bad++
+			fmt.Printf("beacon %d: ts=%v go=%v\n", i, v.OK, ok)
+		} else if ok && beacon.SeedHex(seed) != v.Seed {
+			bad++
+			fmt.Printf("beacon %d seed: ts=%s go=%s\n", i, v.Seed, beacon.SeedHex(seed))
+		}
+	}
+
+	total := len(c.ScriptVecs) + len(c.TxidVecs) + len(c.SighashVecs) + len(c.ValueVecs) + len(c.CovVecs) + len(c.BeaconVecs)
 	if bad > 0 {
 		fmt.Printf("\nVALUE DIFFERENTIAL FAILED — %d mismatch(es) of %d checks\n", bad, total)
 		os.Exit(1)
 	}
-	fmt.Printf("value differential OK — %d checks (script %d, txid %d, sighash %d, value %d, covenant %d): Go byte-identical to TS\n",
-		total, len(c.ScriptVecs), len(c.TxidVecs), len(c.SighashVecs), len(c.ValueVecs), len(c.CovVecs))
+	fmt.Printf("value differential OK — %d checks (script %d, txid %d, sighash %d, value %d, covenant %d, beacon %d): Go byte-identical to TS\n",
+		total, len(c.ScriptVecs), len(c.TxidVecs), len(c.SighashVecs), len(c.ValueVecs), len(c.CovVecs), len(c.BeaconVecs))
 }

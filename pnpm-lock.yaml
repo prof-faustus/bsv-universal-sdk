@@ -198,6 +198,9 @@ importers:
 
   tooling/diff:
     dependencies:
+      '@bsv-universal/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@bsv-universal/engine':
         specifier: workspace:*
         version: link:../../packages/engine

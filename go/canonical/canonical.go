@@ -16,6 +16,7 @@ const (
 	TagState   = "bsv-universal/state/v1"
 	TagRuleset = "bsv-universal/ruleset/v1"
 	TagBeacon  = "bsv-universal/beacon/v1"
+	TagCommit  = "bsv-universal/commit/v1"
 )
 
 // TaggedHash = SHA256(utf8(tag) ++ 0x00 ++ parts...). Matches taggedHash().

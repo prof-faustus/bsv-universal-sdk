@@ -7,6 +7,7 @@
     "@bsv-universal/engine": "workspace:*",
     "@bsv-universal/protocol-types": "workspace:*",
     "@bsv-universal/tx": "workspace:*",
-    "@bsv-universal/script": "workspace:*"
+    "@bsv-universal/script": "workspace:*",
+    "@bsv-universal/crypto": "workspace:*"
   }
 }

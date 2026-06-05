@@ -12,6 +12,7 @@ import {
   type Tx,
 } from '@bsv-universal/tx';
 import { toHex } from '@bsv-universal/protocol-types';
+import { genKeyPair, partyId, commit as commitSecret, verifyBeaconRound, ZERO_BEACON, type BeaconRound } from '@bsv-universal/crypto';
 
 // shared stub checker: accept iff non-empty sig & pub and sig[0] === pub[0]
 const STUB: SigChecker = { check: (sig, pub) => sig.length > 0 && pub.length > 0 && sig[0] === pub[0] };
@@ -122,9 +123,67 @@ for (let s = 0; s < 16; s++) {
   covVecs.push({ reserve: reserve.toString(), rulesHash: toHex(rulesHash), prevTxid: toHex(useOutpoint.txid), prevVout: useOutpoint.vout, prevScript: toHex(usePrevScript), tx: txJson(tx), recipientPkh: toHex(recipientPkh), amount: amount.toString(), ok: r.ok });
 }
 
-const out = { version: 1, stub: stubName(), scriptVecs, txidVecs, sighashVecs, valueVecs, covVecs };
+// ---- beacon (fairness) vectors: commit→reveal verification + seed derivation (REQ-SEC-002/003) ----
+interface BeaconVec {
+  commits: { party: string; commitment: string }[];
+  reveals: { party: string; secret: string }[];
+  eligible: string[];
+  roundNo: number;
+  prevBeacon: string;
+  ok: boolean;
+  seed: string;
+}
+const beaconVecs: BeaconVec[] = [];
+function pid(_seed: number): Uint8Array {
+  return partyId(genKeyPair().pub); // CSPRNG key → always a valid scalar; opaque to the corpus
+}
+function recordBeacon(round: BeaconRound, eligible: Uint8Array[]) {
+  const r = verifyBeaconRound(round, eligible);
+  beaconVecs.push({
+    commits: round.commits.map((c) => ({ party: toHex(c.party), commitment: toHex(c.commitment) })),
+    reveals: round.reveals.map((rv) => ({ party: toHex(rv.party), secret: toHex(rv.secret) })),
+    eligible: eligible.map(toHex),
+    roundNo: round.roundNo,
+    prevBeacon: toHex(round.prevBeacon),
+    ok: r.ok,
+    seed: r.ok ? toHex(r.seed) : '',
+  });
+}
+for (let s = 0; s < 24; s++) {
+  const n = 2 + (s % 4);
+  const ids = Array.from({ length: n }, (_, i) => pid(i + 1 + s * 11));
+  const secrets = ids.map((_, i) => new Uint8Array(randomBytes(32)));
+  const base: BeaconRound = {
+    roundNo: 1 + s,
+    commits: ids.map((id, i) => ({ party: id, commitment: commitSecret(secrets[i]!) })),
+    reveals: ids.map((id, i) => ({ party: id, secret: secrets[i]! })),
+    prevBeacon: ZERO_BEACON,
+  };
+  switch (s % 6) {
+    case 0:
+      recordBeacon(base, ids); // valid
+      break;
+    case 1:
+      recordBeacon({ ...base, reveals: [...base.reveals, { party: pid(999), secret: new Uint8Array(randomBytes(32)) }] }, ids); // fake non-seat reveal
+      break;
+    case 2:
+      recordBeacon({ ...base, commits: [base.commits[0]!, base.commits[0]!, ...base.commits.slice(1)] }, ids); // dup commit
+      break;
+    case 3:
+      recordBeacon({ ...base, reveals: [base.reveals[0]!, base.reveals[0]!, ...base.reveals.slice(1)] }, ids); // dup reveal
+      break;
+    case 4:
+      recordBeacon({ ...base, reveals: [{ party: ids[0]!, secret: new Uint8Array(randomBytes(32)) }, ...base.reveals.slice(1)] }, ids); // bad secret
+      break;
+    default:
+      recordBeacon({ ...base, reveals: [] }, ids); // zero honest
+      break;
+  }
+}
+
+const out = { version: 1, stub: stubName(), scriptVecs, txidVecs, sighashVecs, valueVecs, covVecs, beaconVecs };
 const outDir = fileURLToPath(new URL('../../go/', import.meta.url));
 mkdirSync(outDir, { recursive: true });
 writeFileSync(outDir + 'value-vectors.json', JSON.stringify(out));
-console.log(`wrote value vectors: ${scriptVecs.length} script, ${txidVecs.length} txid, ${sighashVecs.length} sighash, ${valueVecs.length} value, ${covVecs.length} covenant`);
+console.log(`wrote value vectors: ${scriptVecs.length} script, ${txidVecs.length} txid, ${sighashVecs.length} sighash, ${valueVecs.length} value, ${covVecs.length} covenant, ${beaconVecs.length} beacon`);
 void serializeTx;
