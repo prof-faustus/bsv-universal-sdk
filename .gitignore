@@ -9,3 +9,4 @@ apps/desktop/sea-config.json
 *.exe
 # generated differential corpus (REQ-TEST-003)
 go/vectors.json
+go/value-vectors.json

@@ -5,6 +5,8 @@
   "type": "module",
   "dependencies": {
     "@bsv-universal/engine": "workspace:*",
-    "@bsv-universal/protocol-types": "workspace:*"
+    "@bsv-universal/protocol-types": "workspace:*",
+    "@bsv-universal/tx": "workspace:*",
+    "@bsv-universal/script": "workspace:*"
   }
 }

@@ -204,6 +204,12 @@ importers:
       '@bsv-universal/protocol-types':
         specifier: workspace:*
         version: link:../../packages/protocol-types
+      '@bsv-universal/script':
+        specifier: workspace:*
+        version: link:../../packages/script
+      '@bsv-universal/tx':
+        specifier: workspace:*
+        version: link:../../packages/tx
 
 packages:
 

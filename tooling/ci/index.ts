@@ -29,7 +29,9 @@ const STEPS: CIStep[] = [
   // TS↔Go differential (REQ-TEST-003): regenerate the corpus from TS, then assert the independent
   // Go engine is byte-identical. Plus the Go unit tests. Divergence fails the build.
   { name: 'differential corpus (TS)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/diff/gen-vectors.ts'] },
-  { name: 'TS↔Go differential', cmd: GO, args: ['run', './diff'], cwd: 'go', env: { GOFLAGS: '-trimpath' } },
+  { name: 'TS↔Go differential (engine)', cmd: GO, args: ['run', './diff'], cwd: 'go', env: { GOFLAGS: '-trimpath' } },
+  { name: 'value differential corpus (TS)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/diff/gen-value-vectors.ts'] },
+  { name: 'TS↔Go differential (value layer: script/tx/sighash/covenant)', cmd: GO, args: ['run', './valuediff'], cwd: 'go', env: { GOFLAGS: '-trimpath' } },
   { name: 'Go unit tests', cmd: GO, args: ['test', './...'], cwd: 'go', env: { GOFLAGS: '-trimpath' } },
   // REQ-SEC-010: the shippable app MUST build AND its render/adversarial battery MUST pass — no
   // green-by-omission. A web client that does not build or render is a CI failure, not a pass.
