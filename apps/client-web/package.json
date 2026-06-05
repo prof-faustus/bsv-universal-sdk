@@ -12,6 +12,7 @@
     "@bsv-universal/engine": "workspace:*",
     "@bsv-universal/crypto": "workspace:*",
     "@bsv-universal/protocol-types": "workspace:*",
+    "@bsv-universal/practice": "workspace:*",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },

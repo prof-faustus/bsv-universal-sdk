@@ -19,6 +19,8 @@ const STEPS: CIStep[] = [
   { name: 'requirement trace (REQ-TRACE-001/004)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/trace/index.ts'] },
   { name: 'typecheck', cmd: 'npx', args: ['tsc', '-p', 'tsconfig.json', '--noEmit'] },
   { name: 'tests', cmd: 'node', args: ['--experimental-strip-types', '--test', 'packages/**/test/**/*.test.ts'] },
+  // native client render/play battery (drives the real entry over scripted stdin — not "process alive")
+  { name: 'desktop play tests', cmd: 'node', args: ['--experimental-strip-types', '--test', 'apps/desktop/test/**/*.test.ts'] },
   // REQ-SEC-010: the shippable app MUST build AND its render/adversarial battery MUST pass — no
   // green-by-omission. A web client that does not build or render is a CI failure, not a pass.
   { name: 'client-web render tests', cmd: 'pnpm', args: ['--filter', '@bsv-universal/client-web', 'test'] },

@@ -1,0 +1,12 @@
+{
+  "name": "@bsv-universal/practice",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@bsv-universal/engine": "workspace:*",
+    "@bsv-universal/crypto": "workspace:*",
+    "@bsv-universal/protocol-types": "workspace:*"
+  }
+}
