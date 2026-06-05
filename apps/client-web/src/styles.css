@@ -1,0 +1,15 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+body { margin: 0; }
+.app { max-width: 640px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+h1 { margin-bottom: 0; }
+.sub { color: #666; margin-top: 0.25rem; }
+.status { display: flex; gap: 1.5rem; padding: 0.75rem 0; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; }
+.seats { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.seats th, .seats td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #eee; }
+.seats tr.acting { font-weight: 600; background: rgba(120, 170, 255, 0.15); }
+.actions { margin: 1rem 0; }
+button { font-size: 1rem; padding: 0.5rem 0.9rem; margin: 0.25rem 0.25rem 0.25rem 0; cursor: pointer; }
+input { font-size: 1rem; padding: 0.35rem; width: 6rem; }
+.error { color: #b00020; }
+.reset { margin-top: 1.5rem; }
+.cards b { font-size: 1.1rem; }

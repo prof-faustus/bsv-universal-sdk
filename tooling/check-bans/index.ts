@@ -14,7 +14,7 @@ import { join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const SCAN_DIRS = ['packages', 'tooling'];
+const SCAN_DIRS = ['packages', 'apps', 'tooling'];
 // The scanner itself must NAME the banned tokens to detect them; exclude its own directory.
 const EXCLUDE = ['tooling/check-bans'];
 const FENCE_LINE = /\/\* *ban-ok:[^*]*\*\/ *$/;

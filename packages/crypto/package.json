@@ -5,6 +5,8 @@
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@bsv-universal/protocol-types": "workspace:*"
+    "@bsv-universal/protocol-types": "workspace:*",
+    "@noble/hashes": "1.5.0",
+    "@noble/curves": "1.6.0"
   }
 }

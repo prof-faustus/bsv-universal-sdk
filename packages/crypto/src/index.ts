@@ -1,5 +1,5 @@
-// @bsv-universal/crypto — verifiable randomness + player-key signatures. Zero external deps
-// (node:crypto only), mirroring ESTATES' dep-free approach.
+// @bsv-universal/crypto — verifiable randomness + player-key signatures. ISOMORPHIC (Node + browser)
+// via audited @noble libraries; no node:crypto. Mirrors ESTATES' use of @noble/*.
 //
 // Requirements realized here:
 //  - REQ-SEC-002 : randomness is beacon-derived from a commit→reveal round with REJECTION
@@ -10,7 +10,9 @@
 //  - REQ-SEC-001 : player keys — the player's OWN secp256k1 key signs moves (never a throwaway).
 //  - REQ-COMMIT-001/002 : commitment binding + verification.
 
-import { createECDH, createPublicKey, createPrivateKey, createHash, randomBytes, sign as nodeSign, verify as nodeVerify, timingSafeEqual } from 'node:crypto';
+import { secp256k1 } from '@noble/curves/secp256k1';
+import { sha256 as nobleSha256 } from '@noble/hashes/sha256';
+import { ripemd160 as nobleRipemd160 } from '@noble/hashes/ripemd160';
 import {
   taggedHash,
   HASH_TAGS,
@@ -19,6 +21,26 @@ import {
   bytesEqual,
   type HashTag,
 } from '@bsv-universal/protocol-types';
+
+function sha256(b: Uint8Array): Uint8Array {
+  return nobleSha256(b);
+}
+
+/** Isomorphic CSPRNG bytes (Node + browser via WebCrypto). Bounded length. */
+export function randomBytes(n: number): Uint8Array {
+  if (!Number.isInteger(n) || n < 0 || n > 1 << 20) throw new Error('randomBytes length out of range');
+  const out = new Uint8Array(n);
+  globalThis.crypto.getRandomValues(out);
+  return out;
+}
+
+/** Constant-time equality for fixed-length digests (CWE-208). */
+function ctEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a[i]! ^ b[i]!;
+  return d === 0;
+}
 
 // ============================================================================ player keys (secp256k1)
 // A player's identity IS their own long-lived key (REQ-SEC-001 / REQ-BAN-008): the same key
@@ -29,31 +51,14 @@ export interface KeyPair {
   readonly pub: Uint8Array; // 65 bytes, uncompressed 0x04||X||Y
 }
 
-function b64url(b: Uint8Array): string {
-  return Buffer.from(b).toString('base64url');
-}
-
 function pubFromPriv(priv: Uint8Array): Uint8Array {
-  const ecdh = createECDH('secp256k1');
-  ecdh.setPrivateKey(Buffer.from(priv));
-  return new Uint8Array(ecdh.getPublicKey()); // uncompressed
+  return secp256k1.getPublicKey(priv, false); // uncompressed 65B; throws on invalid scalar
 }
 
 /** Generate a player master key (REQ-SEC-001). Long-lived; the player's sole signing authority. */
 export function genKeyPair(): KeyPair {
-  // NASA P10 #2: bounded loop. A 32-byte CSPRNG scalar is out of secp256k1 range with probability
-  // < 2^-127, so a handful of tries is overwhelming; we cap and fail-closed rather than spin.
-  const MAX_TRIES = 16;
-  for (let i = 0; i < MAX_TRIES; i++) {
-    const priv = new Uint8Array(randomBytes(32));
-    try {
-      const pub = pubFromPriv(priv);
-      return { priv, pub };
-    } catch {
-      /* extraordinarily rare invalid scalar — retry within the bound */
-    }
-  }
-  /* c8 ignore next */ throw new Error('genKeyPair: exhausted bounded retries (statistically impossible)');
+  const priv = secp256k1.utils.randomPrivateKey(); // CSPRNG, always a valid scalar
+  return { priv, pub: pubFromPriv(priv) };
 }
 
 export function keyPairFromPriv(priv: Uint8Array): KeyPair {
@@ -70,54 +75,33 @@ export function partyId(pub: Uint8Array): Uint8Array {
   return concatBytes(new Uint8Array([prefix]), x);
 }
 
-function privObject(kp: KeyPair) {
-  const x = kp.pub.slice(1, 33);
-  const y = kp.pub.slice(33, 65);
-  return createPrivateKey({
-    key: { kty: 'EC', crv: 'secp256k1', d: b64url(kp.priv), x: b64url(x), y: b64url(y) },
-    format: 'jwk',
-  });
-}
-
-function pubObject(pub: Uint8Array) {
-  if (pub.length !== 65 || pub[0] !== 0x04) throw new Error('pub must be uncompressed 65B');
-  const x = pub.slice(1, 33);
-  const y = pub.slice(33, 65);
-  return createPublicKey({ key: { kty: 'EC', crv: 'secp256k1', x: b64url(x), y: b64url(y) }, format: 'jwk' });
-}
-
-/** Sign a payload with the player's own key (REQ-SEC-001). Returns a DER ECDSA signature. */
+/** Sign a payload with the player's own key (REQ-SEC-001). Returns a DER ECDSA signature (low-s). */
 export function signData(payload: Uint8Array, kp: KeyPair): Uint8Array {
-  return new Uint8Array(nodeSign('sha256', payload, privObject(kp)));
+  return secp256k1.sign(sha256(payload), kp.priv).toDERRawBytes();
 }
 
 /** Verify a payload signature against a player public key (REQ-SEC-001). Total: never throws. */
 export function verifyData(payload: Uint8Array, sig: Uint8Array, pub: Uint8Array): boolean {
   try {
-    return nodeVerify('sha256', payload, pubObject(pub), sig);
+    return secp256k1.verify(secp256k1.Signature.fromDER(sig), sha256(payload), pub);
   } catch {
     return false;
   }
 }
 
 // ============================================================================ Bitcoin sighash sig
-// A Bitcoin signature is ECDSA over the double-SHA256 of the preimage (the "sighash"). We arrange
-// data = SHA256(preimage) and let node hash once more with 'sha256', so the signed digest is exactly
-// SHA256(SHA256(preimage)). Public keys here are 65-byte uncompressed (no point decompression needed).
-function sha256(b: Uint8Array): Uint8Array {
-  return new Uint8Array(createHash('sha256').update(b).digest());
-}
-
+// A Bitcoin signature is ECDSA over the double-SHA256 of the preimage (the "sighash"). Public keys
+// are 65-byte uncompressed (no point decompression needed).
 /** Sign a transaction sighash preimage with the player's key (REQ-SEC-007). Returns a DER signature. */
 export function signBitcoin(preimage: Uint8Array, kp: KeyPair): Uint8Array {
-  return new Uint8Array(nodeSign('sha256', sha256(preimage), privObject(kp)));
+  return secp256k1.sign(sha256(sha256(preimage)), kp.priv).toDERRawBytes();
 }
 
 /** Verify a Bitcoin-sighash DER signature against a 65-byte uncompressed pubkey. Total: never throws. */
 export function verifyBitcoin(preimage: Uint8Array, derSig: Uint8Array, pub: Uint8Array): boolean {
   try {
     if (pub.length !== 65 || pub[0] !== 0x04) return false;
-    return nodeVerify('sha256', sha256(preimage), pubObject(pub), derSig);
+    return secp256k1.verify(secp256k1.Signature.fromDER(derSig), sha256(sha256(preimage)), pub);
   } catch {
     return false;
   }
@@ -125,7 +109,7 @@ export function verifyBitcoin(preimage: Uint8Array, derSig: Uint8Array, pub: Uin
 
 /** HASH160 = RIPEMD160(SHA256(x)) — the P2PKH key hash. */
 export function hash160(b: Uint8Array): Uint8Array {
-  return new Uint8Array(createHash('ripemd160').update(sha256(b)).digest());
+  return nobleRipemd160(sha256(b));
 }
 
 // ============================================================================ commit / reveal
@@ -137,12 +121,7 @@ export function commit(secret: Uint8Array): Uint8Array {
 /** Constant-time reveal check (REQ-COMMIT-002). */
 export function verifyReveal(secret: Uint8Array, commitment: Uint8Array): boolean {
   const c = commit(secret);
-  if (c.length !== commitment.length) return false;
-  try {
-    return timingSafeEqual(c, commitment);
-  } catch {
-    return false;
-  }
+  return ctEqual(c, commitment);
 }
 
 // ============================================================================ debiased draw (REQ-SEC-002)

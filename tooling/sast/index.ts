@@ -9,7 +9,7 @@ import { join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const SRC_GLOB_ROOT = join(ROOT, 'packages');
+const SRC_ROOTS = ['packages', 'apps'];
 const FENCE = /\/\* *sast-ok:[^*]*\*\//;
 
 interface Rule {
@@ -37,7 +37,7 @@ function* walkSrc(dir: string): Generator<string> {
       // production source only — tests are adversarial harnesses, scanned by their own bar
       if (name === 'test') continue;
       yield* walkSrc(p);
-    } else if (name.endsWith('.ts')) {
+    } else if (name.endsWith('.ts') || name.endsWith('.tsx')) {
       yield p;
     }
   }
@@ -46,25 +46,25 @@ function* walkSrc(dir: string): Generator<string> {
 type Hit = { file: string; line: number; id: string; name: string; text: string };
 const hits: Hit[] = [];
 
-let base: string;
-try {
-  statSync(SRC_GLOB_ROOT);
-  base = SRC_GLOB_ROOT;
-} catch {
-  console.log('check:sast OK — no packages to scan yet.');
-  process.exit(0);
-}
-
-for (const file of walkSrc(base)) {
-  const rel = file.slice(ROOT.length).split(sep).join('/');
-  const lines = readFileSync(file, 'utf8').split(/\r?\n/);
-  lines.forEach((text, i) => {
-    if (FENCE.test(text)) return;
-    for (const rule of RULES) {
-      if (rule.allow?.(rel)) continue;
-      if (rule.re.test(text)) hits.push({ file: rel, line: i + 1, id: rule.id, name: rule.name, text: text.trim() });
-    }
-  });
+for (const root of SRC_ROOTS) {
+  let base: string;
+  try {
+    base = join(ROOT, root);
+    statSync(base);
+  } catch {
+    continue;
+  }
+  for (const file of walkSrc(base)) {
+    const rel = file.slice(ROOT.length).split(sep).join('/');
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/);
+    lines.forEach((text, i) => {
+      if (FENCE.test(text)) return;
+      for (const rule of RULES) {
+        if (rule.allow?.(rel)) continue;
+        if (rule.re.test(text)) hits.push({ file: rel, line: i + 1, id: rule.id, name: rule.name, text: text.trim() });
+      }
+    });
+  }
 }
 
 if (hits.length > 0) {

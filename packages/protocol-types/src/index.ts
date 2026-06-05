@@ -12,7 +12,7 @@
 //  - REQ-ENG-004 : decoders are total (never throw on adversarial input unless the caller opts
 //                  into the throwing variant); `tryDecode` returns a typed result.
 
-import { createHash } from 'node:crypto';
+import { sha256 } from '@noble/hashes/sha256';
 
 // ----------------------------------------------------------------------------- strict hex codec
 const HEX_RE = /^[0-9a-fA-F]*$/;
@@ -108,11 +108,8 @@ export const HASH_TAGS = {
 export type HashTag = (typeof HASH_TAGS)[keyof typeof HASH_TAGS];
 
 export function taggedHash(tag: HashTag, ...parts: Uint8Array[]): Uint8Array {
-  const h = createHash('sha256');
-  h.update(utf8(tag));
-  h.update(new Uint8Array([0x00])); // separator between tag and payload
-  for (const p of parts) h.update(p);
-  return new Uint8Array(h.digest());
+  // Isomorphic SHA-256 (@noble/hashes) — works identically in Node and the browser.
+  return sha256(concatBytes(utf8(tag), new Uint8Array([0x00]), ...parts));
 }
 
 // ----------------------------------------------------------------------------- canonical JSON
@@ -172,7 +169,7 @@ export type Parsed<T> = { readonly ok: true; readonly value: T } | { readonly ok
 
 export function safeJsonParse(text: string, maxBytes: number = MAX_JSON_BYTES): Parsed<unknown> {
   if (typeof text !== 'string') return { ok: false, reason: 'input is not a string' };
-  if (Buffer.byteLength(text, 'utf8') > maxBytes) return { ok: false, reason: `input exceeds ${maxBytes} bytes` };
+  if (utf8(text).length > maxBytes) return { ok: false, reason: `input exceeds ${maxBytes} bytes` };
   try {
     return { ok: true, value: JSON.parse(text) as unknown };
   } catch (e) {
