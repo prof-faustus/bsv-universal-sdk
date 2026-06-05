@@ -1,0 +1,13 @@
+{
+  "name": "@bsv-universal/board",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@bsv-universal/practice": "workspace:*"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.65"
+  }
+}

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { type InBetweenState } from '@bsv-universal/engine';
 import { newGame, deal, bet, pass } from './game.ts';
 import { viewModel } from './viewModel.ts';
+import { BoardCanvas } from './BoardCanvas.tsx';
 
 export function App() {
   const [state, setState] = useState<InBetweenState>(() => newGame(2).state);
@@ -38,30 +39,16 @@ export function App() {
       <h1>In-Between — local practice</h1>
       <p className="sub">Universal BSV game engine. You choose every action; nothing plays itself.</p>
 
+      <BoardCanvas state={state} />
+
       <section className="status" aria-label="game status">
         <div>Round <b>{vm.roundNo}</b></div>
         <div>Phase <b data-testid="phase">{vm.phase}</b></div>
         <div>Pot <b data-testid="pot">{vm.pot}</b> sat</div>
       </section>
 
-      <table className="seats">
-        <thead>
-          <tr><th>Seat</th><th>Balance (sat)</th><th>Turn</th></tr>
-        </thead>
-        <tbody>
-          {vm.players.map((p) => (
-            <tr key={p.id} className={p.acting ? 'acting' : ''}>
-              <td>{p.short}</td>
-              <td>{p.balance}</td>
-              <td>{p.acting ? '→' : ''}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {vm.visible && (
-        <p className="cards">Visible cards: <b>{vm.visible[0]}</b> and <b>{vm.visible[1]}</b> — bet whether the hidden third falls between them.</p>
-      )}
+      {/* The board canvas above shows seats, cards and pot graphically; this text status + the
+          buttons below are the accessible, scriptable controls (and the headless fallback). */}
       {vm.lastOutcome && <p className="outcome">Last: <b>{vm.lastOutcome}</b></p>}
 
       <section className="actions" aria-label="your actions">

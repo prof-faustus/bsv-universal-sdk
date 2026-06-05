@@ -10,12 +10,13 @@
     "test": "node --experimental-strip-types --test \"test/**/*.test.ts\""
   },
   "dependencies": {
-    "@bsv-universal/practice": "workspace:*",
-    "@bsv-universal/engine": "workspace:*",
     "@bsv-universal/crypto": "workspace:*",
+    "@bsv-universal/engine": "workspace:*",
+    "@bsv-universal/practice": "workspace:*",
     "@bsv-universal/protocol-types": "workspace:*"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "0.1.65",
     "esbuild": "0.24.0",
     "postject": "1.0.0-alpha.6"
   }
