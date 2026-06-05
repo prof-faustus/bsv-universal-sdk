@@ -57,6 +57,12 @@ importers:
         specifier: workspace:*
         version: link:../protocol-types
 
+  packages/script:
+    dependencies:
+      '@bsv-universal/protocol-types':
+        specifier: workspace:*
+        version: link:../protocol-types
+
   packages/sdk:
     dependencies:
       '@bsv-universal/crypto':
@@ -68,6 +74,18 @@ importers:
       '@bsv-universal/protocol-types':
         specifier: workspace:*
         version: link:../protocol-types
+
+  packages/tx:
+    dependencies:
+      '@bsv-universal/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+      '@bsv-universal/protocol-types':
+        specifier: workspace:*
+        version: link:../protocol-types
+      '@bsv-universal/script':
+        specifier: workspace:*
+        version: link:../script
 
 packages:
 

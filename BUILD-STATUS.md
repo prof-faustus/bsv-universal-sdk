@@ -14,7 +14,7 @@ as the code it describes. Counts here MUST match `traceability.txt` and spec §1
 
 ---
 
-## 0. Phase-1 implemented slice (CI-green: bans + SAST + trace + typecheck + 66 tests)
+## 0. Phase-1 implemented slice (CI-green: bans + SAST + trace + typecheck + 91 tests)
 
 **Engineered to the mission-critical standard (SANS/CWE + NASA Power-of-10 + Microsoft SDL),
 not web-tutorial quality.** Defect classes are made impossible by construction and enforced in CI:
@@ -47,6 +47,8 @@ working code and a passing `node --test` test under `pnpm ci`. Zero external run
 | `packages/sdk` | REQ-SEC-001 signed envelope (actor-binding + prior-hash chaining + monotonic sequence), REQ-SEC-002/003 live path (randomness only via verified beacon), REQ-SEC-004 session total-order, REQ-ARCH-001 (state re-derived by replay) | `test/session.test.ts` (7) |
 | `packages/relay` | REQ-SEC-005 hostile-bounded relay (max body/log/channels, capability tokens, 413/503/401/404, bounded history pagination) + REQ-SEC-004 `/history` append-order authority; node:http wrapper | `test/core.test.ts` (8), `test/http.test.ts` (2) |
 | `packages/net` | REQ-SEC-004 `OrderedSubscriber` (delivers in append order; dropped pokes only delay, never reorder; two subscribers converge) + full two-peer e2e over the relay | `test/ordered.test.ts` (3), `test/e2e.test.ts` (1) |
+| `packages/script` | REQ-TPL-003 bounded, total BSV Script interpreter — opcode whitelist enforced at runtime; banned 0x6a/0xb1/0xb2 rejected at parse+eval (REQ-BAN at interpreter level); push-only unlocking; `OP_CHECKSIG`/multisig via injected checker; IF/numeric/hash ops; bounded stack/ops/element/depth | `test/interp.test.ts` (11), `test/fuzz.test.ts` (3) |
+| `packages/tx` | REQ-SEC-007 real BSV tx model — canonical serialize + txid (sha256d) + BIP143/forkid sighash; P2PKH end-to-end (real sign → real script satisfaction; SIGHASH_ALL tamper-evident); `verifyTxValue` conserves vs real prev UTXO sats + fee. REQ-SEC-008 `verifyCovenantSpend` binds spent outpoint + prior covenant script + rules hash + payout | `test/tx.test.ts` (8), `test/fuzz.test.ts` (3) |
 | `tooling/check-bans` | REQ-BAN-001..005 static scanner (OP_RETURN/CLTV/CSV/BTC-only) with negative-test fence | runs in `pnpm ci` |
 | `tooling/trace` | REQ-TRACE-001/003 index↔BUILD-STATUS count consistency | runs in `pnpm ci` |
 | `tooling/ci` | REQ-BUILD-005 ordered all-green pipeline | `pnpm ci` |
@@ -66,10 +68,18 @@ delivered items, so two peers converge byte-identically; #5 (DoS) — body/log/c
 tokens + bounded history pagination, returning 413/503/401/404. The two-peer e2e drives a full
 `in-between` game over the relay and both peers stay in lockstep and re-derive identical state.
 
-**Not yet built (next phases, honestly OPEN):** real BSV-Script interpreter + templates (REQ-SEC-007/008,
-REQ-TPL-*), TS↔Go differential corpus (REQ-TEST-003), reproducible-vector harness (REQ-TEST-006),
-client-web + desktop + app-building CI (REQ-SEC-010, REQ-CLIENT-*), poker/land-title/TEA modules,
-on-chain settlement, pre-signed timeout transactions (REQ-MOD-IB-003), and the per-REQ status-row migration.
+**The two remaining tx-layer findings are now foreclosed too:** #7 (model tx logic) — a real BSV tx
+model with canonical serialization, BIP143/forkid sighash, P2PKH signed-and-verified end to end through
+the interpreter, and value conserved against real prev UTXO sats; #8 (unbound covenant) —
+`verifyCovenantSpend` binds the predicate to the spent outpoint + prior covenant script + rules hash
+before the payout check. **9 of the 10 ESTATES audit findings are now closed in code and tested**
+(#1–#9); only **#10** (app-building CI) remains, pending the `client-web` app.
+
+**Not yet built (next phases, honestly OPEN):** TS↔Go differential corpus (REQ-TEST-003),
+reproducible-vector harness (REQ-TEST-006), `client-web` + desktop + app-building CI (REQ-SEC-010,
+REQ-CLIENT-*) — the last open audit finding (#10), poker/land-title/TEA modules, full in-script
+covenant introspection (REQ-SEC-008 production path beyond the verifier oracle), on-chain settlement
+wiring, pre-signed timeout transactions (REQ-MOD-IB-003), and the per-REQ status-row migration.
 
 ---
 

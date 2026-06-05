@@ -10,7 +10,7 @@
 //  - REQ-SEC-001 : player keys — the player's OWN secp256k1 key signs moves (never a throwaway).
 //  - REQ-COMMIT-001/002 : commitment binding + verification.
 
-import { createECDH, createPublicKey, createPrivateKey, randomBytes, sign as nodeSign, verify as nodeVerify, timingSafeEqual } from 'node:crypto';
+import { createECDH, createPublicKey, createPrivateKey, createHash, randomBytes, sign as nodeSign, verify as nodeVerify, timingSafeEqual } from 'node:crypto';
 import {
   taggedHash,
   HASH_TAGS,
@@ -98,6 +98,34 @@ export function verifyData(payload: Uint8Array, sig: Uint8Array, pub: Uint8Array
   } catch {
     return false;
   }
+}
+
+// ============================================================================ Bitcoin sighash sig
+// A Bitcoin signature is ECDSA over the double-SHA256 of the preimage (the "sighash"). We arrange
+// data = SHA256(preimage) and let node hash once more with 'sha256', so the signed digest is exactly
+// SHA256(SHA256(preimage)). Public keys here are 65-byte uncompressed (no point decompression needed).
+function sha256(b: Uint8Array): Uint8Array {
+  return new Uint8Array(createHash('sha256').update(b).digest());
+}
+
+/** Sign a transaction sighash preimage with the player's key (REQ-SEC-007). Returns a DER signature. */
+export function signBitcoin(preimage: Uint8Array, kp: KeyPair): Uint8Array {
+  return new Uint8Array(nodeSign('sha256', sha256(preimage), privObject(kp)));
+}
+
+/** Verify a Bitcoin-sighash DER signature against a 65-byte uncompressed pubkey. Total: never throws. */
+export function verifyBitcoin(preimage: Uint8Array, derSig: Uint8Array, pub: Uint8Array): boolean {
+  try {
+    if (pub.length !== 65 || pub[0] !== 0x04) return false;
+    return nodeVerify('sha256', sha256(preimage), pubObject(pub), derSig);
+  } catch {
+    return false;
+  }
+}
+
+/** HASH160 = RIPEMD160(SHA256(x)) — the P2PKH key hash. */
+export function hash160(b: Uint8Array): Uint8Array {
+  return new Uint8Array(createHash('ripemd160').update(sha256(b)).digest());
 }
 
 // ============================================================================ commit / reveal
