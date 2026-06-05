@@ -22,6 +22,7 @@ const STEPS: CIStep[] = [
   { name: 'static bans (REQ-BAN-001..005)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/check-bans/index.ts'] },
   { name: 'SAST gate (SANS/CWE + NASA P10 + MS SDL)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/sast/index.ts'] },
   { name: 'requirement trace (REQ-TRACE-001/004)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/trace/index.ts'] },
+  { name: 'reproduce golden vectors (REQ-TEST-006 provenance)', cmd: 'node', args: ['--experimental-strip-types', 'tooling/diff/reproduce.ts'] },
   { name: 'typecheck', cmd: 'npx', args: ['tsc', '-p', 'tsconfig.json', '--noEmit'] },
   { name: 'tests', cmd: 'node', args: ['--experimental-strip-types', '--test', 'packages/**/test/**/*.test.ts'] },
   // REQ-TEST-010 coverage gate: 100% FUNCTION coverage on the determinism-critical consensus core

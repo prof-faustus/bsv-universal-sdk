@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "canon": [
+    "5c66029d10ed76c6c5a248b40195f76651006ef560ebfc903723a06d2538b2fa",
+    "2d25d49af5208a7c23e94e3d64f519477544ee275499d159e8fb5c3c3afbb137",
+    "e166a9114f5f3a6445f461b6144326585608e4c439ea0198332ec4ce0fcfa78a"
+  ],
+  "tagged": [
+    "f186f6eb1f7d0628a50cedde833192de648487e8c5a3530f53db15e968e24ab0",
+    "e81ce8a37b604297e663773a4a270f78d930153e737339d54984a96b6fbe4605",
+    "27d8576f49140663f13053a5decbae267e2e007e5bac209660ecac59d4883c27"
+  ],
+  "draws": [
+    1,
+    7,
+    1,
+    2,
+    9,
+    6
+  ],
+  "scenarios": [
+    {
+      "initHash": "86fddaf897d0410589db5a6fdf839b10a14ad6cf148329c285051e30861de7a0",
+      "hashes": [
+        "bdcccf6c969a87bd455a4cbe3b30b6c0d93f50f18eeadd6a09f74d6891d35930",
+        "8aa62f66c3366cd622ec9522b8f582e7df6fdbe50d587408c6325ed2feb2a5d1",
+        "5377800c02bea2797495d2c9f5a99342c0c88267eb1383f24c4078a7acfd63ba",
+        "9067a9decec3f4329c303d1abbbf08387f24452a866c97bb4163a0968e7001b3"
+      ],
+      "settle": {
+        "balances": {
+          "02545f13c023715040ea7d7701363c4285552b572eda6a27a20f458aaa1bbf1433": "105",
+          "0290a80db6eb294b9eab0b4e8ddfa3efe7263458ce2d07566df4e6c58868feef23": "95"
+        },
+        "conserved": true
+      }
+    },
+    {
+      "initHash": "1eaca4bcef96f82d2fde7df4d0d9e7347a0fe3811eb6b50f9d47bd5f255e1d29",
+      "hashes": [
+        "8b8931efb797a84ccdd52e3fc705ccde1e9bafaeaeca321790c1989f7d99cf2d",
+        "6fcc6afa2118685587700b332385aecea8b8ead7da1bb87daae5ead629ce3b6f",
+        "6a2a7e5732b2d9bae120f3d6f934041ff014c341b8c17b0770b8e9549ec81e19",
+        "f022b6fe01682b2de7fc48e8449bc68f5f62f33731d43de00dd3acb96c85896c",
+        "b4cd62e7f2f5419a46432732334256061866ecf7d995d43bbf02c05009d13e95",
+        "add1703db0a26a53df8e1ddb57a0a57d0e7389ad1b224e75b74aa06eef12185c",
+        "5782ce8678fb9a0ab44d0393d9a265379a78c5d0b4fa38d83e5811196a76aa16",
+        "b8311acfcb0a66d2eb988cc1889930033b798f3ca3ce1952b5c4ad9b6074b427"
+      ],
+      "settle": {
+        "balances": {
+          "0214e333e19222ffaf7a5a04b09d46f6f182d033abe15ee1a094cd2910186a92df": "85",
+          "021a908355cbb756755e576ed29c99af638668c7b363c8d97362100443bc5c75c6": "95",
+          "0295083e753301bd787f8989c79065bb813f3d69bff3e425050f4e04175bbe89c0": "85"
+        },
+        "conserved": true
+      }
+    },
+    {
+      "initHash": "49a172b54182475792d7fa72ba623c3ccd4f5a2798bbed2d891efbf126a89aa4",
+      "hashes": [
+        "aace572394561ded981cd9a249b4034d3afb4d750867987ad7621b208323769e",
+        "0da8f662bf9428b02b9813c7ab0dea981aacb1e859b3e5a4b6bb03552804aa2d",
+        "d56c8eabca80411f0773c9209aeb8d6b999858f21a0fd736b5d89be202272929",
+        "342a85d711cb594d1e145eff933f2d014d977d7dd54ee6cdf39b575c9df5b9e1",
+        "23f5c7cf39bb9df739cccd00eee25ab8ba115f049b4ca5c5e06dfd79519f1c01",
+        "2ae1b46a38539666840067fac82224445fd814a6ad6e0c614d6c4dfbebd7e1b0"
+      ],
+      "settle": {
+        "balances": {
+          "020f66dc33e335abc9a7c06f71ad2c0db65d5ac4b6f46d2dad9465e6a4ac04dc3f": "85",
+          "0220f18f4c866d8a1cc2a3103317b4ac3189fbf30ff294a75c951473be45e4f294": "95",
+          "024d1623c944c9c716a0eb4c685e2a8b9d2df3465354643befd1444176d7b69a8b": "95",
+          "02aa336dda311186a2a8dfaa5328fffedffca6476eed1fd8d69fbf74b955b3edc6": "95"
+        },
+        "conserved": true
+      }
+    }
+  ],
+  "beacons": [
+    {
+      "ok": true,
+      "seed": "37839e17290f6cd089e6a835346c0c677b66b2357df5c750765d9c05ef47fea6"
+    },
+    {
+      "ok": true,
+      "seed": "0283b9ba298c532b10e6158ad902e887be1a14f59932c6b438524a1fa756c0ec"
+    }
+  ],
+  "scripts": [
+    true,
+    true,
+    true,
+    false
+  ],
+  "tx": {
+    "serializeHex": "0100000001f512186d0a1751a6b9e0f33f24a090181ecd2ca6390bd37ab9ee93191370496a0000000000ffffffff0184030000000000001976a9146a758fc82790ece1b2c9a8074d4628778a72e8b788ac00000000",
+    "txid": "883c7bc49131b89923419249fc577aa6afda38deb6069afafcf498fda9b4077d",
+    "sighash": "896228a1225ac3d658bb57bb6abfdf74258ee4d5d65a7247c98bb0a6a1172be0",
+    "valueOk": true,
+    "covenantOk": true
+  },
+  "auth": [
+    {
+      "der": "304402204c061614a415df3560bb98cc1bb08c6b5285037807828019da7ea4bbd63397390220511ac976694515bc652ad326429235bcfe8d03285c6ab40d8518429377bc2917",
+      "data": true,
+      "bitcoin": true
+    },
+    {
+      "der": "3044022050848044e966d4be262e16ea44e46a43a9b95a3aeec38ef9210c417d76bab1ee02205c2744c56f73e6e85333d7754a38e22fac31eb14841c7a07e16ea6caf573c196",
+      "data": true,
+      "bitcoin": true
+    },
+    {
+      "der": "3045022100c002cffbebb7745fbad9cc2d1f49a5c41ea554f3ae4c3c45b124a0502065d6cf02202af2e6d536972b5522e63cbd46956318deef566d9979df56457d7b02cd452c41",
+      "data": true,
+      "bitcoin": true
+    }
+  ]
+}

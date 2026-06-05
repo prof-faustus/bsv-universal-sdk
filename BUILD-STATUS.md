@@ -42,9 +42,13 @@ not web-tutorial quality.** Defect classes are made impossible by construction a
   Line **99.5%** / branch **92%** reported (exact-100 line isn't gated because Node attributes type-only
   lines as "uncovered"; the differentials + fuzz provide the deeper assurance). Writing it closed a real
   gap: `OP_CHECKMULTISIG` had been entirely untested.
+- **Reproducible-vector provenance (REQ-TEST-006):** `vectors/golden.json` is a committed, deterministic
+  golden corpus (canonical hashes, drawValue, in-between scenarios, beacon seeds, script evals,
+  txid/sighash/value/covenant, ECDSA signatures). `pnpm reproduce` re-derives it from source and fails CI
+  on any drift — a hand-edited expected value or a silent output change cannot survive (anti-tamper).
 
-CI gates (all green): `check:bans` → `check:sast` → `trace` → `typecheck` → tests → **coverage gate** →
-native + differentials + web build.
+CI gates (all green): `check:bans` → `check:sast` → `trace` → `reproduce` → `typecheck` → tests →
+**coverage gate** → native + differentials + web build.
 
 
 The security-critical spine is built **secure-by-construction first**, anchored on the
