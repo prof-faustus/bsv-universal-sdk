@@ -42,6 +42,11 @@ not web-tutorial quality.** Defect classes are made impossible by construction a
   Line **99.5%** / branch **92%** reported (exact-100 line isn't gated because Node attributes type-only
   lines as "uncovered"; the differentials + fuzz provide the deeper assurance). Writing it closed a real
   gap: `OP_CHECKMULTISIG` had been entirely untested.
+- **Property-based invariants (REQ-TEST-004):** universal properties asserted over thousands of generated
+  cases — value is always conserved + balances never go negative (500 games), replay is deterministic and
+  equals incremental application (300 games), the beacon seed is order-independent (200 rounds),
+  sign/verify + commit/reveal always round-trip, `drawValue` always in range, and canonical output is
+  independent of key insertion order (1000 values). Not "doesn't throw" — "the invariant always holds".
 - **Reproducible-vector provenance (REQ-TEST-006):** `vectors/golden.json` is a committed, deterministic
   golden corpus (canonical hashes, drawValue, in-between scenarios, beacon seeds, script evals,
   txid/sighash/value/covenant, ECDSA signatures). `pnpm reproduce` re-derives it from source and fails CI
